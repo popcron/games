@@ -1,3 +1,3 @@
 # Games
 
-Public game releases
+Public game releases directory to be used with the updater.
