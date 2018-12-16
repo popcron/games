@@ -1,2 +1,3 @@
-# games
+# Games
+
 Public game releases
