@@ -9,7 +9,7 @@
 *.user
 *.userosscache
 *.sln.docstates
-Popcron.Updater\Resources\Settings.txt
+Popcron\.Updater/Resources/Settings\.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
