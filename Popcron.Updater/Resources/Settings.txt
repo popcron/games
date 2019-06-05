@@ -1,0 +1,8 @@
+{
+  "company": "popcron",
+  "repositoryOwner": "popcron",
+  "repositoryName": "games",
+  "gameName": "Rocket Jump",
+  "execName": "RocketJump/RocketJump.exe",
+  "tagPrefix": "rocketjump_"
+}

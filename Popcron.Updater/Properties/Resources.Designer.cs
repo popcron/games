@@ -59,5 +59,21 @@ namespace Popcron.Updater.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {
+        ///  &quot;company&quot;: &quot;popcron&quot;,
+        ///  &quot;repositoryOwner&quot;: &quot;popcron&quot;,
+        ///  &quot;repositoryName&quot;: &quot;games&quot;,
+        ///  &quot;gameName&quot;: &quot;Rocket Jump&quot;,
+        ///  &quot;execName&quot;: &quot;RocketJump/RocketJump.exe&quot;,
+        ///  &quot;tagPrefix&quot;: &quot;rocketjump_&quot;
+        ///}.
+        /// </summary>
+        internal static string Settings {
+            get {
+                return ResourceManager.GetString("Settings", resourceCulture);
+            }
+        }
     }
 }
