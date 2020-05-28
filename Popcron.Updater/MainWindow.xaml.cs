@@ -1,15 +1,13 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Octokit;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
-
-using Newtonsoft.Json;
-using Octokit;
 
 namespace Popcron.Updater
 {
@@ -168,39 +166,8 @@ namespace Popcron.Updater
                 Close();
                 return;
             }
-            Launch();
-        }
 
-        private void ClearDirectory()
-        {
-            string fileName = Path.GetFileName(Assembly.GetEntryAssembly().Location);
-            DirectoryInfo directoryInfo = new DirectoryInfo(Destination);
-            FileInfo[] files = directoryInfo.GetFiles();
-            foreach (FileInfo fileInfo in files)
-            {
-                string fileName2 = Path.GetFileName(fileInfo.FullName);
-                if (!(fileName2 == fileName))
-                {
-                    try
-                    {
-                        fileInfo.Delete();
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
-            DirectoryInfo[] directories = directoryInfo.GetDirectories();
-            foreach (DirectoryInfo directoryInfo2 in directories)
-            {
-                try
-                {
-                    directoryInfo2.Delete(recursive: true);
-                }
-                catch
-                {
-                }
-            }
+            Launch();
         }
 
         private async void Launch()
@@ -231,6 +198,7 @@ namespace Popcron.Updater
             {
                 Directory.CreateDirectory(Destination);
             }
+
             text.Content = "downloading";
             Release release = await GetLatestRelease();
             if (release == null)
@@ -240,7 +208,6 @@ namespace Popcron.Updater
                 return false;
             }
 
-            ClearDirectory();
             text.Content = "live version: " + release.Name;
             await Task.Delay(Settings.Delay);
             text.Content = "downloading 0%";
@@ -249,12 +216,34 @@ namespace Popcron.Updater
             client.DownloadProgressChanged += ProgressChanged;
             foreach (ReleaseAsset asset in release.Assets)
             {
-                string path = Destination + "/" + asset.Name;
-                await client.DownloadFileTaskAsync(asset.BrowserDownloadUrl, path);
+                //delete zip if already exists
+                string pathToZip = Destination + "/" + asset.Name;
+                if (File.Exists(pathToZip))
+                {
+                    File.Delete(pathToZip);
+                }
+
+                //download
+                await client.DownloadFileTaskAsync(asset.BrowserDownloadUrl, pathToZip);
                 success = true;
-                ZipFile.ExtractToDirectory(path, Destination);
-                File.Delete(path);
+
+                //extract to temporary location
+                string tempDestination = Destination + "_Temp";
+                if (Directory.Exists(tempDestination))
+                {
+                    Directory.Delete(tempDestination, true);
+                }
+
+                Directory.CreateDirectory(tempDestination);
+                ZipFile.ExtractToDirectory(pathToZip, tempDestination);
+
+                //delete the zip
+                File.Delete(pathToZip);
+
+                //move stuff from temp to destination
+                Move();
             }
+
             if (success)
             {
                 await Task.Delay(Settings.Delay);
@@ -262,16 +251,48 @@ namespace Popcron.Updater
                 UpdateLocalInfo(release);
                 return true;
             }
+
             text.Content = "error: release not found";
             await Task.Delay(Settings.ErrorDelay);
             return false;
         }
 
+        private void Move()
+        {
+            string tempDestination = Destination + "_Temp";
+
+            //move the files from the temp folder, to the correct folder
+            string[] files = Directory.GetFiles(tempDestination, "*.*", SearchOption.AllDirectories);
+            for (int i = 0; i < files.Length; i++)
+            {
+                string properPath = files[i].Replace("_Temp", "");
+
+                //make sure dir exists
+                string directory = Path.GetDirectoryName(properPath);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                //delete the old file if it exists
+                if (File.Exists(properPath))
+                {
+                    File.Delete(properPath);
+                }
+
+                //then move the new one into the proper path
+                File.Move(files[i], properPath);
+            }
+
+            //delete temp dir
+            Directory.Delete(tempDestination, true);
+        }
+
         private void ProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            float num = e.ProgressPercentage / 100f;
-            int num2 = (int)(num * 100f);
-            text.Content = "downloading " + num2 + "%";
+            float percentageFloat = e.ProgressPercentage / 100f;
+            int percentage = (int)(percentageFloat * 100f);
+            text.Content = $"downloading {percentage}%";
         }
     }
 }
