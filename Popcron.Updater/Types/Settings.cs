@@ -1,16 +1,15 @@
 ﻿namespace Popcron.Updater
 {
-    public class Settings
+    public struct Settings
     {
         public const string VersionFile = "version.txt";
         public const int Delay = 5;
         public const int ErrorDelay = 2000;
-
-        public string company = "popcron";
-        public string repositoryOwner = "popcron";
-        public string repositoryName = "games";
-        public string gameName = "Rocket Jump";
-        public string execName = "RocketJump/RocketJump.exe";
-        public string tagPrefix = "rocketjump_";
+        public const string Company = "popcron";
+        public const string RepositoryOwner = "popcron";
+        public const string RepositoryName = "games";
+        public const string GameName = "Holiday";
+        public const string ExecName = "Holiday/Holiday.exe";
+        public const string TagPrefix = "holiday_";
     }
 }

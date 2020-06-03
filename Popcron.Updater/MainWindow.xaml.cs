@@ -16,14 +16,12 @@ namespace Popcron.Updater
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Settings settings;
-
         private string Destination
         {
             get
             {
                 string folderPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                return Path.Combine(folderPath, settings.repositoryOwner, settings.gameName);
+                return Path.Combine(folderPath, Settings.RepositoryOwner, Settings.GameName);
             }
         }
 
@@ -32,7 +30,7 @@ namespace Popcron.Updater
             get
             {
                 string folderPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                return Path.Combine(folderPath, settings.repositoryOwner, settings.gameName, settings.execName);
+                return Path.Combine(folderPath, Settings.RepositoryOwner, Settings.GameName, Settings.ExecName);
             }
         }
 
@@ -41,22 +39,14 @@ namespace Popcron.Updater
             get
             {
                 string folderPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                return Path.Combine(folderPath, settings.repositoryOwner, settings.gameName, Settings.VersionFile);
+                return Path.Combine(folderPath, Settings.RepositoryOwner, Settings.GameName, Settings.VersionFile);
             }
         }
 
         public MainWindow()
         {
             InitializeComponent();
-
-            Load();
             Start();
-        }
-
-        private void Load()
-        {
-            string json = Properties.Resources.Settings;
-            settings = JsonConvert.DeserializeObject<Settings>(json);
         }
 
         private Info GetLocalVersion()
@@ -96,16 +86,16 @@ namespace Popcron.Updater
             try
             {
                 DateTime now = DateTime.Now.ToUniversalTime();
-                string gameName = settings.gameName.Replace(" ", "");
-                ProductHeaderValue productHeader = new ProductHeaderValue(gameName + "Updater");
+                string gameName = Settings.GameName.Replace(" ", "");
+                ProductHeaderValue productHeader = new ProductHeaderValue($"{gameName}Updater");
                 GitHubClient github = new GitHubClient(productHeader);
-                Repository repo = await github.Repository.Get(settings.repositoryOwner, settings.repositoryName);
+                Repository repo = await github.Repository.Get(Settings.RepositoryOwner, Settings.RepositoryName);
                 IReadOnlyList<Release> releases = await github.Repository.Release.GetAll(repo.Id);
                 double milliseconds = double.MaxValue;
                 Release latest = null;
                 foreach (Release release in releases)
                 {
-                    if (release.TagName.StartsWith(settings.tagPrefix) && release.Assets.Count != 0)
+                    if (release.TagName.StartsWith(Settings.TagPrefix) && release.Assets.Count != 0)
                     {
                         DateTimeOffset value = now;
                         DateTimeOffset? publishedAt = release.PublishedAt;
