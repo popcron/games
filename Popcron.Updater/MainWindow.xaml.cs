@@ -1,10 +1,10 @@
-﻿using Newtonsoft.Json;
-using Octokit;
+﻿using Octokit;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Windows;
@@ -16,6 +16,9 @@ namespace Popcron.Updater
     /// </summary>
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// Path to the folder that contains the game files.
+        /// </summary>
         private string Destination
         {
             get
@@ -25,6 +28,9 @@ namespace Popcron.Updater
             }
         }
 
+        /// <summary>
+        /// Path to the executable.
+        /// </summary>
         private string Executable
         {
             get
@@ -34,7 +40,10 @@ namespace Popcron.Updater
             }
         }
 
-        private string SettingsFile
+        /// <summary>
+        /// Path to the local version file.
+        /// </summary>
+        private string VersionFile
         {
             get
             {
@@ -51,34 +60,41 @@ namespace Popcron.Updater
 
         private Info GetLocalVersion()
         {
-            if (!File.Exists(SettingsFile))
+            if (File.Exists(VersionFile))
             {
-                return null;
+                string[] lines = File.ReadAllLines(VersionFile);
+                if (lines.Length == 2)
+                {
+                    if (DateTime.TryParse(lines[0], out DateTime downloadedAt))
+                    {
+                        if (DateTime.TryParse(lines[1], out DateTime versionPublishedAt))
+                        {
+                            return new Info()
+                            {
+                                downloadedAt = downloadedAt,
+                                versionPublishedAt = versionPublishedAt
+                            };
+                        }
+                    }
+                }
             }
 
-            using (StreamReader streamReader = new StreamReader(SettingsFile))
-            {
-                string text = streamReader.ReadToEnd();
-                return JsonConvert.DeserializeObject<Info>(text);
-            }
+            return null;
         }
 
         private void UpdateLocalInfo(Release release)
         {
-            DateTime utcDateTime = release.PublishedAt.GetValueOrDefault().UtcDateTime;
-            Info info = new Info
-            {
-                downloadedAt = DateTime.Now.ToUniversalTime(),
-                versionPublishedAt = utcDateTime
-            };
+            DateTime downloadedAt = DateTime.Now.ToUniversalTime();
+            DateTime versionPublishedAt = release.PublishedAt.GetValueOrDefault().UtcDateTime;
 
-            string contents = JsonConvert.SerializeObject(info, Formatting.None);
-            string directoryName = Path.GetDirectoryName(SettingsFile);
+            string contents = downloadedAt.ToString() + "\n" + versionPublishedAt.ToString();
+            string directoryName = Path.GetDirectoryName(VersionFile);
             if (!Directory.Exists(directoryName))
             {
                 Directory.CreateDirectory(directoryName);
             }
-            File.WriteAllText(SettingsFile, contents);
+
+            File.WriteAllText(VersionFile, contents);
         }
 
         private async Task<Release> GetLatestRelease()
@@ -130,6 +146,7 @@ namespace Popcron.Updater
             Info info = GetLocalVersion();
             if (info != null)
             {
+                text.Content = "getting latest release";
                 Release liveVersion = await GetLatestRelease();
                 if (liveVersion == null)
                 {
@@ -247,9 +264,23 @@ namespace Popcron.Updater
             return false;
         }
 
+        private void ClearUnityFolder(string folderName)
+        {
+            string folderDirectory = Path.Combine(Directory.GetParent(Executable).FullName, folderName);
+            if (Directory.Exists(folderDirectory))
+            {
+                Directory.Delete(folderDirectory, true);
+            }
+        }
+
         private void Move()
         {
             string tempDestination = Destination + "_Temp";
+
+            //clear the _Data directory
+            string dataFolderName = Path.GetFileNameWithoutExtension(Settings.ExecName) + "_Data";
+            ClearUnityFolder(dataFolderName);
+            ClearUnityFolder("MonoBleedingEdge");
 
             //move the files from the temp folder, to the correct folder
             string[] files = Directory.GetFiles(tempDestination, "*.*", SearchOption.AllDirectories);
